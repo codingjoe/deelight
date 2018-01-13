@@ -55,7 +55,7 @@ def get_light_setting(data):
     altitude = solar.get_altitude(latitude, longitude, datetime.datetime.now(),
                                   temperature=temperature, pressure=pressure)
 
-    logger.info("Sun's altitude is %.1f°", altitude)
+    logger.info("Sun's altitude is %.1f degrees", altitude)
     logger.info("Cloudiness is %.0f%%", cloudiness * 100)
 
     if altitude > 6:
