@@ -1,0 +1,18 @@
+language: python
+sudo: false
+cache:
+- pip
+python: '3.5'
+install:
+- pip install -e .
+script:
+- deelight --help
+deploy:
+  provider: pypi
+  user: codingjoe
+  password:
+    secure: GEIpz+v5l8klas25C/6UIfAl3vzaCOUfn+jEb0elPu/ALOY66/+U7VEvRE3iFVK3zOn2AGzixEThk/jJvO93DqadEuzNodlW1oYw41GLoLx8vKtQbtZ5Ts5FiBhrNyMCEmn3Bp0ueCtrqMLGf/m12DOFKi0p31WuBSBuqKWBwSMS1lFRVCA9MPrPaTVMHLxdhjxucqtHYSi9qXZyzFWQZk4WUwjazc/BUZSUGIl9FM9ZgN89dU49sNKifOVL3oif7n6ipEnLbbLW/rskFIU243KP0R/OHc+sBg9+ut0tTyP2Iw+Dk361k3gYeWM7Bu3aeubm/hiRG1IsfHHaFiniDudtTQOGlI8ZmBxo8y+zlealO719WkhiisEZoS3mAUoV4XDkvrShb4SGec0FCINf2DQpBWg0rOUmslMhtAivY9a9J5pdot/a+6OOCHyzNeWHN+Mau6bawllrznw/yNIScdMHjqukxFt2iCIP+ySk/R5mwHPfjKibYbo2jXQW9Ebo6M3z0SblyXjnOEji1xj+d67Cv8WuWnIhH8JV9W1yJ4q1VLXZr5d41jX/rPD8LOxN78xklgG0gfRXH41jK7KqVvtc6G8uVPZMnYvUOrqDFjGhuDE1UNWuT+PQua7Yyh8RA4vot34xZniPePgsfXKKunOPfKm4QSYW/oJtd9jYJp4=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: codingjoe/deelight
