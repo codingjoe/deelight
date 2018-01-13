@@ -28,7 +28,7 @@ Install the Python package
 
 .. code-block:: shell
 
-    pip install deelight
+    pip3 install deelight
 
 and run the deelight command
 
