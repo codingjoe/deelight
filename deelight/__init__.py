@@ -90,7 +90,8 @@ def get_weather_data(city, data=None):
     except HTTPError as e:
         raise CommandError("City '%s' could not be found." % city) from e
     else:
-        data.update(json.load(response))
+        content = response.read().decode()
+        data.update(json.loads(content))
         logger.debug(data)
         return data
 
