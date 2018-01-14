@@ -75,6 +75,8 @@ add a simple upstart script. It will be executed once your network is up.
        [ "$(ps -p "$(cat "$PIDFILE")" -o comm=)" == deelight ]; then
             exit 0
     fi
+    
+    sleep 10  # sleep until network sockets are available
 
     deelight "$CITY" -vv >/var/log/deelight.log 2>&1 &
     echo $! >"$PIDFILE"
