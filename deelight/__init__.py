@@ -23,17 +23,7 @@ WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather?%s'
 
 LightSetting = namedtuple('LightSetting', ['temprature', 'brightness', 'power_mode'])
 
-
-class MutableBool:
-
-    def __init__(self, state):
-        self.__state = bool(state)
-
-    def __bool__(self):
-        return self.__state
-
-    def set(self, value):
-        self.__state = bool(value)
+weather_data = {}
 
 
 class CeiligLight(Bulb):
@@ -45,12 +35,15 @@ class CeiligLight(Bulb):
         await self.send_command("set_bright", [light_setting.brightness, "smooth", duration])
 
 
-def get_light_setting(data):
-    latitude = data['coord']['lat']
-    longitude = data['coord']['lon']
-    cloudiness = data['clouds']['all'] / 100.0
-    temperature = data['main']['temp']
-    pressure = data['main']['pressure'] * 100
+def get_light_setting():
+    if not weather_data:
+        logger.info("Waiting for weather data...")
+        return
+    latitude = weather_data['coord']['lat']
+    longitude = weather_data['coord']['lon']
+    cloudiness = weather_data['clouds']['all'] / 100.0
+    temperature = weather_data['main']['temp']
+    pressure = weather_data['main']['pressure'] * 100
 
     altitude = solar.get_altitude(latitude, longitude, datetime.datetime.now(),
                                   temperature=temperature, pressure=pressure)
@@ -79,30 +72,43 @@ def get_light_setting(data):
         return LightSetting(1700, 10, power_mode=5)
 
 
-def get_weather_data(city, data=None):
-    if data is None:
-        data = {}
-    params = urllib.parse.urlencode({'q': city, 'APPID': WEATHER_API_KEY})
-    try:
-        url = WEATHER_API_URL % params
-        logger.info("GET %s", url)
-        response = urllib.request.urlopen(url)
-    except HTTPError as e:
-        raise CommandError("City '%s' could not be found." % city) from e
-    else:
-        content = response.read().decode()
-        data.update(json.loads(content))
-        logger.debug(data)
-        return data
+async def update_weather_data(city):
+    while True:
+        params = urllib.parse.urlencode({'q': city, 'APPID': WEATHER_API_KEY})
+        try:
+            url = WEATHER_API_URL % params
+            logger.info("GET %s", url)
+            response = urllib.request.urlopen(url)
+        except HTTPError as e:
+            raise CommandError("City '%s' could not be found." % city) from e
+        except IOError:
+            logger.exception("Network Error")
+            await asyncio.sleep(10)  # every half hour
+        else:
+            content = response.read().decode()
+            weather_data.update(json.loads(content))
+            logger.debug(weather_data)
+
+            await asyncio.sleep(60 * 30)  # every half hour
+
+
+async def update_bulbs():
+    while True:
+        light_setting = get_light_setting()
+        if light_setting is None:
+            return
+
+        for b in bulbs.values():
+            asyncio.Task(b.set_light_setting(light_setting))
+
+        await asyncio.sleep(60)  # every minute
 
 
 def control_lights(city):
     loop = asyncio.get_event_loop()
 
-    data = get_weather_data(city)
-
-    loop.create_task(update_weather_data(city, data))
-    loop.create_task(update_bulbs(data))
+    loop.create_task(update_weather_data(city))
+    loop.create_task(update_bulbs())
 
     def ask_exit(signame):
         logger.critical("Got signal %s: exit", signame)
@@ -118,19 +124,3 @@ def control_lights(city):
             loop.run_forever()
     finally:
         loop.close()
-
-
-async def update_weather_data(city, data):
-    while True:
-        get_weather_data(city, data)
-        await asyncio.sleep(60 * 30)  # every half hour
-
-
-async def update_bulbs(data):
-    while True:
-        light_setting = get_light_setting(data)
-
-        for b in bulbs.values():
-            asyncio.Task(b.set_light_setting(light_setting))
-
-        await asyncio.sleep(60)  # every minute

@@ -19,7 +19,9 @@ Next install the following packages:
 
 .. code-block:: shell
 
-    sudo apt-get install python3 python3-pip -y
+    sudo apt-get install python3 -y
+    wget https://bootstrap.pypa.io/get-pip.py
+    sudo python3 get-pip.py
 
 Deeelight
 ~~~~~~~~~
@@ -28,7 +30,7 @@ Install the Python package
 
 .. code-block:: shell
 
-    pip3 install deelight
+    sudo pip install deelight
 
 and run the deelight command
 
@@ -40,13 +42,39 @@ and run the deelight command
 Autostart
 ~~~~~~~~~
 
-If you are running ``deelight`` on Raspbian or any other Debian system,
-simply do:
+If you are running ``deelight`` on Raspbian or any other Debian system you can
+add a simple upstart script. It will be executed once your network is up.
 
 .. code-block:: shell
 
-    sudo echo '#!/usr/bin/env sh' > /etc/network/if-up.d/deelight
-    sudo echo "$(which deelight) \"New York, US\" -v"" >> /etc/network/if-up.d/deelight
-    sudo chmod +x /etc/network/if-up.d/deelight
+    sudo touch /etc/network/if-up.d/deelight
+    chmod +x /etc/network/if-up.d/deelight
+    sudo nano /etc/network/if-up.d/deelight
 
-Deelight will be now run whenever your device is connected to the network.
+.. code-block:: bash
+
+    #!/bin/sh -e
+
+    ## Replace this value with the correct city name.
+    # CITY="New York, US"
+    CITY=Valletta
+
+    PIDFILE=/var/run/deelight.pid
+
+    case "$IFACE" in
+        lo)
+            # The loopback interface does not count.
+            # only run when some other interface comes up
+            exit 0
+            ;;
+        *)
+            ;;
+    esac
+
+    if [ -f "$PIDFILE" ] && \
+       [ "$(ps -p "$(cat "$PIDFILE")" -o comm=)" == deelight ]; then
+            exit 0
+    fi
+
+    deelight "$CITY" -vv >/var/log/deelight.log 2>&1 &
+    echo $! >"$PIDFILE"
