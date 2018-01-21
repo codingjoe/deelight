@@ -1,2 +1,2 @@
-yeelib>=1.0.0
+yeelib>=2.0.0
 pysolar

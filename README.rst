@@ -47,36 +47,23 @@ add a simple upstart script. It will be executed once your network is up.
 
 .. code-block:: shell
 
-    sudo touch /etc/network/if-up.d/deelight
-    chmod +x /etc/network/if-up.d/deelight
-    sudo nano /etc/network/if-up.d/deelight
+    sudo nano /etc/systemd/system/deelight.service
 
-.. code-block:: bash
+.. code-block:: ini
 
-    #!/bin/sh -e
+    [Unit]
+    Description=Daylight mode for Xiaomi Mi Yeelight
+    After=network-online.target
 
-    ## Replace this value with the correct city name.
-    # CITY="New York, US"
-    CITY=Valletta
+    [Service]
+    Type=idle
+    ExecStart=/usr/bin/python3 /usr/local/bin/deelight Valletta -v
+    Restart=always
 
-    PIDFILE=/var/run/deelight.pid
+    [Install]
+    WantedBy=multi-user.target
 
-    case "$IFACE" in
-        lo)
-            # The loopback interface does not count.
-            # only run when some other interface comes up
-            exit 0
-            ;;
-        *)
-            ;;
-    esac
+.. code-block:: shell
 
-    if [ -f "$PIDFILE" ] && \
-       [ "$(ps -p "$(cat "$PIDFILE")" -o comm=)" == deelight ]; then
-            exit 0
-    fi
-    
-    sleep 10  # sleep until network sockets are available
-
-    deelight "$CITY" -vv >/var/log/deelight.log 2>&1 &
-    echo $! >"$PIDFILE"
+    sudo systemctl enable deelight.service
+    sudo service deelight start

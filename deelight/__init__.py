@@ -5,10 +5,10 @@ import json
 import logging
 import random
 import signal
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections import namedtuple
-from urllib.error import HTTPError
 
 from pysolar import solar
 from yeelib import search_bulbs, bulbs, Bulb
@@ -27,6 +27,12 @@ weather_data = {}
 
 
 class CeiligLight(Bulb):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        light_setting = get_light_setting()
+        if light_setting:
+            asyncio.Task(self.set_light_setting(light_setting))
+
     async def set_light_setting(self, light_setting: LightSetting, duration=5000):
         logger.info("Setting %s to %s", self, light_setting)
         await self.send_command("set_power", ["on", "sudden", duration, light_setting.power_mode])
@@ -79,11 +85,11 @@ async def update_weather_data(city):
             url = WEATHER_API_URL % params
             logger.info("GET %s", url)
             response = urllib.request.urlopen(url)
-        except HTTPError as e:
+        except urllib.error.HTTPError as e:
             raise CommandError("City '%s' could not be found." % city) from e
-        except IOError:
+        except urllib.error.URLError:
             logger.exception("Network Error")
-            await asyncio.sleep(10)  # every half hour
+            await asyncio.sleep(10)
         else:
             content = response.read().decode()
             weather_data.update(json.loads(content))
@@ -109,6 +115,7 @@ def control_lights(city):
 
     loop.create_task(update_weather_data(city))
     loop.create_task(update_bulbs())
+    loop.create_task(search_bulbs(bulb_class=CeiligLight, loop=loop))
 
     def ask_exit(signame):
         logger.critical("Got signal %s: exit", signame)
@@ -120,7 +127,6 @@ def control_lights(city):
                                 functools.partial(ask_exit, signame))
 
     try:
-        with search_bulbs(bulb_class=CeiligLight, loop=loop):
-            loop.run_forever()
+        loop.run_forever()
     finally:
         loop.close()
