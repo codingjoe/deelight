@@ -19,9 +19,7 @@ Next install the following packages:
 
 .. code-block:: shell
 
-    sudo apt-get install python3 -y
-    wget https://bootstrap.pypa.io/get-pip.py
-    sudo python3 get-pip.py
+    sudo apt-get install python3-pip -y
 
 Deeelight
 ~~~~~~~~~

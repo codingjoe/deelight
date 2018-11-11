@@ -1,2 +1,2 @@
 yeelib>=2.0.0
-pysolar
+pysolar==0.7

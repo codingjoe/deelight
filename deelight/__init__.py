@@ -56,26 +56,26 @@ def get_light_setting():
 
     logger.info("Sun's altitude is %.1f degrees", altitude)
     logger.info("Cloudiness is %.0f%%", cloudiness * 100)
+    cloudiness = min(cloudiness, 0.5)
 
     if altitude > 6:
         # daylight
-        temperature = 5200
+        temperature = 4000
         brightness = 100
         if random.random() < cloudiness:
             cloud_thickness = random.random()
-            temperature += 1300 * cloud_thickness
+            temperature += 2500 * cloud_thickness
             brightness -= 75 * cloud_thickness
         return LightSetting(int(temperature), int(brightness), power_mode=1)
-    elif altitude > 0.0:
-        temperature = 2700 + 2500 * altitude / 6
-        brightness = 100 * altitude / 6
+    elif altitude > -10:
+        temperature = 2700 + 1300 * (altitude + 10) / 20
+        brightness = 100 * (altitude + 10) / 20
         return LightSetting(int(temperature), int(brightness), power_mode=1)
-    elif altitude > -6:
-        temperature = 2700 + 4800 * altitude / 6
-        brightness = 100 * altitude / 6
-        return LightSetting(int(temperature), int(brightness), power_mode=5)
-    elif altitude < -6:
-        return LightSetting(1700, 10, power_mode=5)
+    elif altitude > -20:
+        brightness = 100 * abs(altitude) / 16
+        return LightSetting(2700, int(brightness), power_mode=5)
+    elif altitude < -20:
+        return LightSetting(2700, 0, power_mode=5)
 
 
 async def update_weather_data(city):
