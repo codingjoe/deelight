@@ -67,12 +67,14 @@ def get_light_setting():
             temperature += 2500 * cloud_thickness
             brightness -= 75 * cloud_thickness
         return LightSetting(int(temperature), int(brightness), power_mode=1)
-    elif altitude > -10:
-        temperature = 2700 + 1300 * (altitude + 10) / 20
-        brightness = 100 * (altitude + 10) / 20
+    elif altitude > -12:
+        ratio = (altitude + 12) / 18
+        temperature = 2700 + 1300 * ratio
+        brightness = 100 * ratio
         return LightSetting(int(temperature), int(brightness), power_mode=1)
     elif altitude > -20:
-        brightness = 100 * abs(altitude) / 16
+        ratio = (altitude + 20) / 8
+        brightness = 100 * ratio
         return LightSetting(2700, int(brightness), power_mode=5)
     elif altitude < -20:
         return LightSetting(2700, 0, power_mode=5)
@@ -107,7 +109,7 @@ async def update_bulbs():
         for b in bulbs.values():
             asyncio.Task(b.set_light_setting(light_setting))
 
-        await asyncio.sleep(60)  # every minute
+        await asyncio.sleep(45)  # every 45 seconds
 
 
 def control_lights(city):
