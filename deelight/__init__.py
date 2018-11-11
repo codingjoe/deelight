@@ -26,7 +26,7 @@ LightSetting = namedtuple('LightSetting', ['temprature', 'brightness', 'power_mo
 weather_data = {}
 
 
-class CeiligLight(Bulb):
+class CeilingLight(Bulb):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         light_setting = get_light_setting()
@@ -115,7 +115,7 @@ def control_lights(city):
 
     loop.create_task(update_weather_data(city))
     loop.create_task(update_bulbs())
-    loop.create_task(search_bulbs(bulb_class=CeiligLight, loop=loop))
+    loop.create_task(search_bulbs(bulb_class=CeilingLight, loop=loop))
 
     def ask_exit(signame):
         logger.critical("Got signal %s: exit", signame)
