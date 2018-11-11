@@ -70,14 +70,14 @@ def get_light_setting():
     elif altitude > -12:
         ratio = (altitude + 12) / 18
         temperature = 2700 + 1300 * ratio
-        brightness = 100 * ratio
+        brightness = 1 + 99 * ratio
         return LightSetting(int(temperature), int(brightness), power_mode=1)
-    elif altitude > -20:
-        ratio = (altitude + 20) / 8
-        brightness = 100 * ratio
+    elif altitude > -45:
+        ratio = (altitude + 45) / 28
+        brightness = 10 + 90 * ratio
         return LightSetting(2700, int(brightness), power_mode=5)
-    elif altitude < -20:
-        return LightSetting(2700, 0, power_mode=5)
+    elif altitude < -45:
+        return LightSetting(2700, 10, power_mode=5)
 
 
 async def update_weather_data(city):
