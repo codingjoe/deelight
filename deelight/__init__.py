@@ -27,57 +27,71 @@ weather_data = {}
 
 
 class CeilingLight(Bulb):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        light_setting = get_light_setting()
+    update_interval = 45
+    daylight = 4500
+    moonlight = 2700
+    peak = 6500
+
+    def __init__(self, clouds=True, update=True, **kwargs):
+        self.update = update
+        self.clouds = clouds
+        super().__init__(**kwargs)
+        light_setting = self.get_light_setting()
         if light_setting:
             asyncio.Task(self.set_light_setting(light_setting))
+        if self.update:
+            asyncio.Task(self.update_light_setting())
 
-    async def set_light_setting(self, light_setting: LightSetting, duration=5000):
+    async def set_light_setting(self, light_setting: LightSetting, duration=100):
         logger.info("Setting %s to %s", self, light_setting)
         await self.send_command("set_power", ["on", "sudden", duration, light_setting.power_mode])
         if light_setting.power_mode == 1:
             await self.send_command("set_ct_abx", [light_setting.temprature, "smooth", duration])
         await self.send_command("set_bright", [light_setting.brightness, "smooth", duration])
 
+    def get_light_setting(self):
+        if not weather_data:
+            logger.info("Waiting for weather data...")
+            return
+        latitude = weather_data['coord']['lat']
+        longitude = weather_data['coord']['lon']
+        cloudiness = weather_data['clouds']['all'] / 100.0
+        temperature = weather_data['main']['temp']
+        pressure = weather_data['main']['pressure'] * 100
 
-def get_light_setting():
-    if not weather_data:
-        logger.info("Waiting for weather data...")
-        return
-    latitude = weather_data['coord']['lat']
-    longitude = weather_data['coord']['lon']
-    cloudiness = weather_data['clouds']['all'] / 100.0
-    temperature = weather_data['main']['temp']
-    pressure = weather_data['main']['pressure'] * 100
+        altitude = solar.get_altitude(latitude, longitude, datetime.datetime.now(),
+                                      temperature=temperature, pressure=pressure)
 
-    altitude = solar.get_altitude(latitude, longitude, datetime.datetime.now(),
-                                  temperature=temperature, pressure=pressure)
+        logger.info("Sun's altitude is %.1f degrees", altitude)
+        logger.info("Cloudiness is %.0f%%", cloudiness * 100)
+        cloudiness = min(cloudiness, 0.5)
 
-    logger.info("Sun's altitude is %.1f degrees", altitude)
-    logger.info("Cloudiness is %.0f%%", cloudiness * 100)
-    cloudiness = min(cloudiness, 0.5)
+        if altitude > 6:
+            # daylight
+            temperature = self.daylight
+            brightness = 100
+            if self.clouds:
+                if random.random() < cloudiness:
+                    cloud_thickness = random.random()
+                    temperature += (self.peak - self.daylight) * cloud_thickness
+                    brightness -= 75 * cloud_thickness
+            return LightSetting(int(temperature), int(brightness), power_mode=1)
+        elif altitude > -12:
+            ratio = 1 - abs((altitude - 6) / 18)
+            temperature = self.moonlight + (self.daylight - self.moonlight) * ratio
+            brightness = 1 + 99 * ratio
+            return LightSetting(int(temperature), int(brightness), power_mode=1)
+        elif altitude > -45:
+            ratio = 1 - abs((altitude + 12) / 33)
+            brightness = 10 + 90 * ratio
+            return LightSetting(self.moonlight, int(brightness), power_mode=5)
+        elif altitude <= -45:
+            return LightSetting(self.moonlight, 10, power_mode=5)
 
-    if altitude > 6:
-        # daylight
-        temperature = 4000
-        brightness = 100
-        if random.random() < cloudiness:
-            cloud_thickness = random.random()
-            temperature += 2500 * cloud_thickness
-            brightness -= 75 * cloud_thickness
-        return LightSetting(int(temperature), int(brightness), power_mode=1)
-    elif altitude > -12:
-        ratio = (altitude + 12) / 18
-        temperature = 2700 + 1300 * ratio
-        brightness = 1 + 99 * ratio
-        return LightSetting(int(temperature), int(brightness), power_mode=1)
-    elif altitude > -45:
-        ratio = (altitude + 45) / 28
-        brightness = 10 + 90 * ratio
-        return LightSetting(2700, int(brightness), power_mode=5)
-    elif altitude < -45:
-        return LightSetting(2700, 10, power_mode=5)
+    async def update_light_setting(self):
+        while True:
+            await asyncio.sleep(self.update_interval)
+            await self.set_light_setting(self.get_light_setting())
 
 
 async def update_weather_data(city):
@@ -100,24 +114,11 @@ async def update_weather_data(city):
             await asyncio.sleep(60 * 30)  # every half hour
 
 
-async def update_bulbs():
-    while True:
-        light_setting = get_light_setting()
-        if light_setting is None:
-            return
-
-        for b in bulbs.values():
-            asyncio.Task(b.set_light_setting(light_setting))
-
-        await asyncio.sleep(45)  # every 45 seconds
-
-
-def control_lights(city):
+def control_lights(city, **kwargs):
     loop = asyncio.get_event_loop()
 
     loop.create_task(update_weather_data(city))
-    loop.create_task(update_bulbs())
-    loop.create_task(search_bulbs(bulb_class=CeilingLight, loop=loop))
+    loop.create_task(search_bulbs(bulb_class=CeilingLight, loop=loop, kwargs=kwargs))
 
     def ask_exit(signame):
         logger.critical("Got signal %s: exit", signame)

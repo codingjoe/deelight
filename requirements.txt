@@ -1,2 +1,3 @@
-yeelib>=2.0.0
+yeelib>=2.1.0
 pysolar==0.7
+click

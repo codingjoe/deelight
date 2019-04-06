@@ -1,7 +1,8 @@
 """Make your Xiaomi Mi YeeLight bulb emulate outside lighting conditions."""
-import argparse
 import logging
 import sys
+
+import click
 
 from deelight import control_lights
 
@@ -10,10 +11,17 @@ LOG_FORMAT = '%(asctime)s %(levelname)-8s %(message)s'
 logger = logging.getLogger(__package__)
 
 
-def main():
-    args = get_args()
-    setup_logging(args.verbosity)
-    control_lights(args.city)
+@click.command()
+@click.argument('city')
+@click.option('--verbosity', '-v', default=0, count=True,
+              help='increase output verbosity')
+@click.option('--update/--no-update', default=True,
+              help='Do not update light setting for running lights.')
+@click.option('--clouds/--no-clouds', default=True,
+              help='Dim light to simulate clouds.')
+def main(city, verbosity, update, clouds):
+    setup_logging(verbosity)
+    control_lights(city, update=update, clouds=clouds)
 
 
 def get_logging_level(verbosity):
@@ -38,15 +46,6 @@ def setup_logging(verbosity):
     ssdp = logging.getLogger('ssdp')
     ssdp.addHandler(hdlr)
     ssdp.setLevel(get_logging_level(verbosity - 2))
-
-
-def get_args():
-    parser = argparse.ArgumentParser(description=__doc__.strip())
-    parser.add_argument('city',
-                        help='name of the city to emulate')
-    parser.add_argument("-v", "--verbosity", action="count", default=0,
-                        help="increase output verbosity")
-    return parser.parse_args()
 
 
 if __name__ == '__main__':
