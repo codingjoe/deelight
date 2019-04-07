@@ -42,7 +42,7 @@ class CeilingLight(Bulb):
         if self.update:
             asyncio.Task(self.update_light_setting())
 
-    async def set_light_setting(self, light_setting: LightSetting, duration=100):
+    async def set_light_setting(self, light_setting: LightSetting, duration=5000):
         logger.info("Setting %s to %s", self, light_setting)
         await self.send_command("set_power", ["on", "sudden", duration, light_setting.power_mode])
         if light_setting.power_mode == 1:
@@ -81,11 +81,11 @@ class CeilingLight(Bulb):
             temperature = self.moonlight + (self.daylight - self.moonlight) * ratio
             brightness = 1 + 99 * ratio
             return LightSetting(int(temperature), int(brightness), power_mode=1)
-        elif altitude > -45:
-            ratio = 1 - abs((altitude + 12) / 33)
+        elif altitude > -30:
+            ratio = 1 - abs((altitude + 12) / 18)
             brightness = 10 + 90 * ratio
             return LightSetting(self.moonlight, int(brightness), power_mode=5)
-        elif altitude <= -45:
+        elif altitude <= -30:
             return LightSetting(self.moonlight, 10, power_mode=5)
 
     async def update_light_setting(self):
