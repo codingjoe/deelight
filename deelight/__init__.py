@@ -81,11 +81,11 @@ class CeilingLight(Bulb):
             temperature = self.moonlight + (self.daylight - self.moonlight) * ratio
             brightness = 1 + 99 * ratio
             return LightSetting(int(temperature), int(brightness), power_mode=1)
-        elif altitude > -30:
-            ratio = 1 - abs((altitude + 12) / 18)
+        elif altitude > -18:
+            ratio = 1 - abs((altitude + 12) / 6)
             brightness = 10 + 90 * ratio
             return LightSetting(self.moonlight, int(brightness), power_mode=5)
-        elif altitude <= -30:
+        elif altitude <= -18:
             return LightSetting(self.moonlight, 10, power_mode=5)
 
     async def update_light_setting(self):
