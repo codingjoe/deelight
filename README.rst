@@ -55,7 +55,7 @@ add a simple upstart script. It will be executed once your network is up.
 
     [Service]
     Type=idle
-    ExecStart=/usr/bin/python3 /usr/local/bin/deelight Valletta -v
+    ExecStart=/usr/bin/python3 /usr/local/bin/deelight -v -- 52 13
     Restart=always
 
     [Install]

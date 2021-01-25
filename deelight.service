@@ -1,0 +1,11 @@
+[Unit]
+Description=Daylight mode for Xiaomi Mi Yeelight
+After=network-online.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /usr/local/bin/deelight Valletta -v
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

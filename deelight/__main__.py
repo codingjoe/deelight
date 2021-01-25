@@ -1,27 +1,47 @@
 """Make your Xiaomi Mi YeeLight bulb emulate outside lighting conditions."""
+import asyncio
 import logging
+import socket
 import sys
 
 import click
+from yeelib import YeelightProtocol
 
-from deelight import control_lights
+from deelight import CeilingLight
 
-LOG_FORMAT = '%(asctime)s %(levelname)-8s %(message)s'
+LOG_FORMAT = "%(asctime)s %(name)-8s %(levelname)-8s %(message)s"
 
 logger = logging.getLogger(__package__)
 
 
 @click.command()
-@click.argument('city')
-@click.option('--verbosity', '-v', default=0, count=True,
-              help='increase output verbosity')
-@click.option('--update/--no-update', default=True,
-              help='Do not update light setting for running lights.')
-@click.option('--clouds/--no-clouds', default=True,
-              help='Dim light to simulate clouds.')
-def main(city, verbosity, update, clouds):
+@click.argument("latitude", type=float)
+@click.argument("longitude", type=float)
+@click.option(
+    "--clouds",
+    "-c",
+    default=0.1,
+    help="Cache of clouds between. Between 0 and 1, default 0.1.",
+)
+@click.option(
+    "--verbosity", "-v", default=0, count=True, help="Increase output verbosity."
+)
+def main(latitude, longitude, clouds, verbosity):
     setup_logging(verbosity)
-    control_lights(city, update=update, clouds=clouds)
+    loop = asyncio.get_event_loop()
+    unicast_connection = loop.create_datagram_endpoint(
+        lambda: YeelightProtocol(
+            CeilingLight,
+            loop=loop,
+            latitude=latitude,
+            longitude=longitude,
+            clouds=clouds,
+        ),
+        family=socket.AF_INET,
+    )
+    ucast_transport, _ = loop.run_until_complete(unicast_connection)
+    loop.run_forever()
+    loop.close()
 
 
 def get_logging_level(verbosity):
@@ -36,17 +56,11 @@ def setup_logging(verbosity):
     hdlr = logging.StreamHandler(sys.stdout)
     hdlr.setLevel(get_logging_level(verbosity))
     hdlr.setFormatter(logging.Formatter(LOG_FORMAT))
-    logger.addHandler(hdlr)
-    logger.setLevel(get_logging_level(verbosity))
-
-    yeelib = logging.getLogger('yeelib')
-    yeelib.addHandler(hdlr)
-    yeelib.setLevel(get_logging_level(verbosity - 1))
-
-    ssdp = logging.getLogger('ssdp')
-    ssdp.addHandler(hdlr)
-    ssdp.setLevel(get_logging_level(verbosity - 2))
+    for name in [__package__, "yeelib", "ssdp"]:
+        l = logging.getLogger(name)
+        l.addHandler(hdlr)
+        l.setLevel(get_logging_level(verbosity))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

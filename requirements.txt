@@ -1,3 +1,0 @@
-yeelib>=2.1.0
-pysolar==0.7
-click
